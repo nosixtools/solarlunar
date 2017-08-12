@@ -1,24 +1,23 @@
-package main
+package solarlunar
 
 import (
+	"errors"
 	"fmt"
-	"github.com/CodisLabs/codis/pkg/utils/errors"
 	"strconv"
 	"time"
 )
 
 var MIN_YEAR = 1900
 var MAX_YEAR = 2049
-var isLeapYear = false
-var startDateStr = "1900-01-30"
-var year int
-var month int
+
 var dateLayout = "2006-01-02"
-var datetimeLayout = "2006-01-02 15:04:05"
+var startDateStr = "1900-01-30"
+
 var chineseNumber = []string{"一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"}
 var chineseNumberSpecial = []string{"正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊"}
-var monthNumber = map[string]int{"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "June": 6, "July": 7, "Aug": 8, "Sept": 9, "Oct": 10, "Nov": 11, "Dec": 12}
-var lunarData = []int{
+var monthNumber = map[string]int{"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+
+var LUNAR_INFO = []int{
 	0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
 	0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
 	0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
@@ -35,15 +34,7 @@ var lunarData = []int{
 	0x05aa0, 0x076a3, 0x096d0, 0x04bd7, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
 	0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0}
 
-func main() {
-	lunarDate := "2017-06-21"
-	solarDate := "2017-08-12"
-	fmt.Println(luanrToChineseSolar(solarDate))
-	fmt.Println(luanrToSimpleSolar(solarDate))
-	fmt.Println(lunarToSolar(lunarDate, true))
-}
-
-func lunarToSolar(date string, leapMonthFlag bool) string {
+func LunarToSolar(date string, leapMonthFlag bool) string {
 	loc, _ := time.LoadLocation("Local")
 	lunarTime, err := time.ParseInLocation(dateLayout, date, loc)
 	if err != nil {
@@ -53,10 +44,12 @@ func lunarToSolar(date string, leapMonthFlag bool) string {
 	lunarMonth := monthNumber[lunarTime.Month().String()]
 	lunarDay := lunarTime.Day()
 	err = checkLunarDate(lunarYear, lunarMonth, lunarDay, leapMonthFlag)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return ""
 	}
+
 	offset := 0
 
 	for i := MIN_YEAR; i < lunarYear; i++ {
@@ -103,39 +96,46 @@ func lunarToSolar(date string, leapMonthFlag bool) string {
 			offset += lunarDay
 		}
 	}
+
 	myDate, err := time.ParseInLocation(dateLayout, startDateStr, loc)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
-	dayDuaration,_ := time.ParseDuration("24h")
+	dayDuaration, _ := time.ParseDuration("24h")
 	myDate = myDate.Add(dayDuaration * time.Duration(offset))
 	return myDate.Format(dateLayout)
 }
 
-func checkLunarDate(lunarYear, lunarMonth, lunarDay int, leapMonthFlag bool) error {
-	if (lunarYear < MIN_YEAR) || (lunarYear > MAX_YEAR) {
-		return errors.New("非法农历年份！")
+func SolarToChineseLuanr(date string) string {
+	lunarYear, lunarMonth, lunarDay, leapMonth, leapMonthFlag := calculateLunar(date)
+	result := cyclical(lunarYear) + "年"
+	if leapMonthFlag && (lunarMonth == leapMonth) {
+		result += "闰"
 	}
-	if (lunarMonth < 1) || (lunarMonth > 12) {
-		return errors.New("非法农历月份！")
-	}
-	if (lunarDay < 1) || (lunarDay > 30) { // 中国的月最多30天
-		return errors.New("非法农历天数！")
-	}
-
-	leap := getLeapMonth(lunarYear) // 计算该年应该闰哪个月
-	if (leapMonthFlag == true) && (lunarMonth != leap) {
-		return errors.New("非法闰月！")
-	}
-	return nil
+	result += chineseNumberSpecial[lunarMonth-1] + "月"
+	result += chineseDayString(lunarDay) + "日"
+	return result
 }
+
+func SolarToSimpleLuanr(date string) string {
+	lunarYear, lunarMonth, lunarDay, leapMonth, leapMonthFlag := calculateLunar(date)
+	result := strconv.Itoa(lunarYear) + "年"
+	if leapMonthFlag && (lunarMonth == leapMonth) {
+		result += "闰"
+	}
+	result += strconv.Itoa(lunarMonth) + "月"
+	result += strconv.Itoa(lunarDay) + "日"
+	return result
+}
+
 
 func calculateLunar(date string) (lunarYear, lunarMonth, lunarDay, leapMonth int, leapMonthFlag bool) {
 	loc, _ := time.LoadLocation("Local")
 	i := 0
 	temp := 0
 	leapMonthFlag = false
+	isLeapYear := false
 
 	myDate, err := time.ParseInLocation(dateLayout, date, loc)
 	if err != nil {
@@ -185,35 +185,33 @@ func calculateLunar(date string) (lunarYear, lunarMonth, lunarDay, leapMonth int
 	lunarDay = offset
 	return
 }
-func luanrToChineseSolar(date string) string {
-	lunarYear, lunarMonth, lunarDay, leapMonth, leapMonthFlag := calculateLunar(date)
-	result := cyclical(lunarYear) + "年"
-	if leapMonthFlag && (lunarMonth == leapMonth) {
-		result += "闰"
+
+func checkLunarDate(lunarYear, lunarMonth, lunarDay int, leapMonthFlag bool) error {
+	if (lunarYear < MIN_YEAR) || (lunarYear > MAX_YEAR) {
+		return errors.New("非法农历年份！")
 	}
-	result += chineseNumberSpecial[lunarMonth-1] + "月"
-	result += chineseDayString(lunarDay) + "日"
-	return result
+	if (lunarMonth < 1) || (lunarMonth > 12) {
+		return errors.New("非法农历月份！")
+	}
+	if (lunarDay < 1) || (lunarDay > 30) { // 中国的月最多30天
+		return errors.New("非法农历天数！")
+	}
+
+	leap := getLeapMonth(lunarYear) // 计算该年应该闰哪个月
+	if (leapMonthFlag == true) && (lunarMonth != leap) {
+		return errors.New("非法闰月！")
+	}
+	return nil
 }
 
-func luanrToSimpleSolar(date string) string {
-	lunarYear, lunarMonth, lunarDay, leapMonth, leapMonthFlag := calculateLunar(date)
-	result := strconv.Itoa(lunarYear) + "年"
-	if leapMonthFlag && (lunarMonth == leapMonth) {
-		result += "闰"
-	}
-	result += strconv.Itoa(lunarMonth) + "月"
-	result += strconv.Itoa(lunarDay) + "日"
-	return result
-}
-
+// 计算该月总天数
 func getMonthDays(lunarYeay int, month uint) int {
 	if (month > 31) || (month < 0) {
 		fmt.Println("error month")
 	}
 	// 0X0FFFF[0000 {1111 1111 1111} 1111]中间12位代表12个月，1为大月，0为小月
 	bit := 1 << (16 - month)
-	if ((lunarData[lunarYeay-1900] & 0x0FFFF) & bit) == 0 {
+	if ((LUNAR_INFO[lunarYeay-1900] & 0x0FFFF) & bit) == 0 {
 		return 29
 	} else {
 		return 30
@@ -224,7 +222,7 @@ func getMonthDays(lunarYeay int, month uint) int {
 func getYearDays(year int) int {
 	sum := 29 * 12
 	for i := 0x8000; i >= 0x8; i >>= 1 {
-		if (lunarData[year-1900] & 0xfff0 & i) != 0 {
+		if (LUNAR_INFO[year-1900] & 0xfff0 & i) != 0 {
 			sum++
 		}
 	}
@@ -234,7 +232,7 @@ func getYearDays(year int) int {
 //	计算阴历年闰月多少天
 func getLeapMonthDays(year int) int {
 	if getLeapMonth(year) != 0 {
-		if (lunarData[year-1900] & 0xf0000) == 0 {
+		if (LUNAR_INFO[year-1900] & 0xf0000) == 0 {
 			return 29
 		} else {
 			return 30
@@ -246,9 +244,10 @@ func getLeapMonthDays(year int) int {
 
 //	计算阴历年闰哪个月 1-12 , 没闰传回 0
 func getLeapMonth(year int) int {
-	return (int)(lunarData[year-1900] & 0xf)
+	return (int)(LUNAR_INFO[year-1900] & 0xf)
 }
 
+// 计算差的天数
 func daysBwteen(myDate time.Time, startDate time.Time) int {
 	subValue := float64(myDate.Unix()-startDate.Unix())/86400.0 + 0.5
 	return int(subValue)
