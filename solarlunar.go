@@ -124,9 +124,38 @@ func SolarToSimpleLuanr(date string) string {
 	if leapMonthFlag && (lunarMonth == leapMonth) {
 		result += "闰"
 	}
-	result += strconv.Itoa(lunarMonth) + "月"
-	result += strconv.Itoa(lunarDay) + "日"
+	if lunarMonth < 10 {
+		result += "0" + strconv.Itoa(lunarMonth) + "月"
+	} else {
+		result += strconv.Itoa(lunarMonth) + "月"
+	}
+	if lunarDay < 10 {
+		result += "0" + strconv.Itoa(lunarDay) + "日"
+	} else {
+		result += strconv.Itoa(lunarDay) + "日"
+	}
 	return result
+}
+
+func SolarToLuanr(date string) (string,bool) {
+	lunarYear, lunarMonth, lunarDay, leapMonth, leapMonthFlag := calculateLunar(date)
+	result := strconv.Itoa(lunarYear) + "-"
+	if lunarMonth < 10 {
+		result += "0" + strconv.Itoa(lunarMonth) + "-"
+	} else {
+		result += strconv.Itoa(lunarMonth) + "-"
+	}
+	if lunarDay < 10 {
+		result += "0" + strconv.Itoa(lunarDay)
+	} else {
+		result += strconv.Itoa(lunarDay)
+	}
+
+	if leapMonthFlag && (lunarMonth == leapMonth) {
+		return result,true
+	} else {
+		return result,false
+	}
 }
 
 
