@@ -1,8 +1,8 @@
 # solarlunar
 [![Build Status](https://api.travis-ci.org/nosixtools/solarlunar.svg?branch=master)](https://api.travis-ci.org/nosixtools/solarlunar)
 
-#####1.阳历和阴历相互转化（支持1900~2049年）
-#####2.节假日计算
+##### 1.阳历和阴历相互转化（支持1900~2049年）
+##### 2.节假日计算
 
 ## 快速开始
 #### 下载和安装
