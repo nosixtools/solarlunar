@@ -114,7 +114,6 @@ func readFestivalRuleFromFile(filename string) {
 
 func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, solarDay string) []string {
 	festivals := []string{}
-	year := int(date.Year())
 	month := strconv.Itoa(int(date.Month()))
 	day := strconv.Itoa(date.Day())
 	rules := ruleMap[month]
@@ -125,9 +124,6 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 		festivalMonth := subMatch[2]
 		if strings.HasPrefix(subMatch[3], "d") {
 			festivalDay := subMatch[5]
-			if festivalMonth == "4" && festivalDay == "5" && isLeapYear(year)  { //特殊处理清明节，清明节为冬至后的第190天，闰年和平年差一天
-				festivalDay = "4"
-			}
 			if month == festivalMonth && day == festivalDay {
 				festivals = append(festivals, items[1])
 			}
