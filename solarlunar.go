@@ -10,12 +10,12 @@ import (
 var MIN_YEAR = 1900
 var MAX_YEAR = 2049
 
-var dateLayout = "2006-01-02"
-var startDateStr = "1900-01-30"
+var DATELAYOUT = "2006-01-02"
+var STARTDATESTR = "1900-01-30"
 
-var chineseNumber = []string{"一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"}
-var chineseNumberSpecial = []string{"正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊"}
-var monthNumber = map[string]int{"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+var CHINESENUMBER = []string{"一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"}
+var CHINESENUMBERSPECIAL = []string{"正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊"}
+var MONTHNUMBER = map[string]int{"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
 
 var LUNAR_INFO = []int{
 	0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
@@ -36,12 +36,12 @@ var LUNAR_INFO = []int{
 
 func LunarToSolar(date string, leapMonthFlag bool) string {
 	loc, _ := time.LoadLocation("Local")
-	lunarTime, err := time.ParseInLocation(dateLayout, date, loc)
+	lunarTime, err := time.ParseInLocation(DATELAYOUT, date, loc)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	lunarYear := lunarTime.Year()
-	lunarMonth := monthNumber[lunarTime.Month().String()]
+	lunarMonth := MONTHNUMBER[lunarTime.Month().String()]
 	lunarDay := lunarTime.Day()
 	err = checkLunarDate(lunarYear, lunarMonth, lunarDay, leapMonthFlag)
 
@@ -97,14 +97,14 @@ func LunarToSolar(date string, leapMonthFlag bool) string {
 		}
 	}
 
-	myDate, err := time.ParseInLocation(dateLayout, startDateStr, loc)
+	myDate, err := time.ParseInLocation(DATELAYOUT, STARTDATESTR, loc)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
 	dayDuaration, _ := time.ParseDuration("24h")
 	myDate = myDate.Add(dayDuaration * time.Duration(offset))
-	return myDate.Format(dateLayout)
+	return myDate.Format(DATELAYOUT)
 }
 
 func SolarToChineseLuanr(date string) string {
@@ -113,7 +113,7 @@ func SolarToChineseLuanr(date string) string {
 	if leapMonthFlag && (lunarMonth == leapMonth) {
 		result += "闰"
 	}
-	result += chineseNumberSpecial[lunarMonth-1] + "月"
+	result += CHINESENUMBERSPECIAL[lunarMonth-1] + "月"
 	result += chineseDayString(lunarDay) + "日"
 	return result
 }
@@ -166,11 +166,11 @@ func calculateLunar(date string) (lunarYear, lunarMonth, lunarDay, leapMonth int
 	leapMonthFlag = false
 	isLeapYear := false
 
-	myDate, err := time.ParseInLocation(dateLayout, date, loc)
+	myDate, err := time.ParseInLocation(DATELAYOUT, date, loc)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	startDate, err := time.ParseInLocation(dateLayout, startDateStr, loc)
+	startDate, err := time.ParseInLocation(DATELAYOUT, STARTDATESTR, loc)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -310,6 +310,6 @@ func chineseDayString(day int) string {
 	} else if day == 10 {
 		return "初十"
 	} else {
-		return chineseTen[day/10] + chineseNumber[n]
+		return chineseTen[day/10] + CHINESENUMBER[n]
 	}
 }

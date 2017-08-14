@@ -17,7 +17,7 @@ var MONTH_SOLAR_FESTIVAL = map[string][]string{}
 var MONTH_LUNAR_FESTIVAL = map[string][]string{}
 var SOLAR = "solar"
 var LUNAR = "lunar"
-var dateLayout = "2006-01-02"
+var DATELAYOUT = "2006-01-02"
 
 type Festival struct {
 	filename string
@@ -36,14 +36,14 @@ func (f *Festival) GetFestivals(solarDay string) (festivals []string) {
 	loc, _ := time.LoadLocation("Local")
 
 	//处理公历节日
-	tempDate, _ := time.ParseInLocation(dateLayout, solarDay, loc)
+	tempDate, _ := time.ParseInLocation(DATELAYOUT, solarDay, loc)
 	for _, festival := range processRule(tempDate, MONTH_SOLAR_FESTIVAL, false, solarDay) {
 		festivals = append(festivals, festival)
 	}
 	//处理农历节日
 	lunarDate, isLeapMonth := solarlunar.SolarToLuanr(solarDay)
 	if !isLeapMonth {
-		tempDate, _ := time.ParseInLocation(dateLayout, lunarDate, loc)
+		tempDate, _ := time.ParseInLocation(DATELAYOUT, lunarDate, loc)
 		for _, festival := range processRule(tempDate, MONTH_LUNAR_FESTIVAL, true, solarDay) {
 			festivals = append(festivals, festival)
 		}
@@ -54,50 +54,58 @@ func (f *Festival) GetFestivals(solarDay string) (festivals []string) {
 func readFestivalRuleFromFile(filename string) {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		return
 	}
 	rules, err := simplejson.NewJson(bytes)
 	if err != nil {
-		panic(err)
-	}
-	solarMap, err := rules.Get(SOLAR).Map()
-	if err != nil {
 		fmt.Println(err.Error())
+		return
 	}
-	for key, value := range solarMap {
-		for _, item := range value.([]interface{}) {
-			v := item.(string)
-			is, err := regexp.MatchString(RULE_PATTERN, v)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			if is {
-				if _, ok := MONTH_SOLAR_FESTIVAL[key]; ok {
-					MONTH_SOLAR_FESTIVAL[key] = append(MONTH_SOLAR_FESTIVAL[key], v)
-				} else {
-					temp := []string{v}
-					MONTH_SOLAR_FESTIVAL[key] = temp
+	solarData := rules.Get(SOLAR)
+	if solarData != nil {
+		solarMap, err := solarData.Map()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		for key, value := range solarMap {
+			for _, item := range value.([]interface{}) {
+				v := item.(string)
+				is, err := regexp.MatchString(RULE_PATTERN, v)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				if is {
+					if _, ok := MONTH_SOLAR_FESTIVAL[key]; ok {
+						MONTH_SOLAR_FESTIVAL[key] = append(MONTH_SOLAR_FESTIVAL[key], v)
+					} else {
+						temp := []string{v}
+						MONTH_SOLAR_FESTIVAL[key] = temp
+					}
 				}
 			}
 		}
 	}
-	lunarMap, err := rules.Get(LUNAR).Map()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	for key, value := range lunarMap {
-		for _, item := range value.([]interface{}) {
-			v := item.(string)
-			is, err := regexp.MatchString(RULE_PATTERN, v)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			if is {
-				if _, ok := MONTH_LUNAR_FESTIVAL[key]; ok {
-					MONTH_LUNAR_FESTIVAL[key] = append(MONTH_LUNAR_FESTIVAL[key], v)
-				} else {
-					temp := []string{v}
-					MONTH_LUNAR_FESTIVAL[key] = temp
+	lunarData := rules.Get(LUNAR)
+	if lunarData != nil {
+		lunarMap, err := lunarData.Map()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		for key, value := range lunarMap {
+			for _, item := range value.([]interface{}) {
+				v := item.(string)
+				is, err := regexp.MatchString(RULE_PATTERN, v)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				if is {
+					if _, ok := MONTH_LUNAR_FESTIVAL[key]; ok {
+						MONTH_LUNAR_FESTIVAL[key] = append(MONTH_LUNAR_FESTIVAL[key], v)
+					} else {
+						temp := []string{v}
+						MONTH_LUNAR_FESTIVAL[key] = temp
+					}
 				}
 			}
 		}
@@ -152,14 +160,14 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 }
 
 func lunarDateAddOneDay(solarDay string) time.Time {
-	tempDate, err := time.Parse(dateLayout, solarDay)
+	tempDate, err := time.Parse(DATELAYOUT, solarDay)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	dayDuaration, _ := time.ParseDuration("24h")
 	nextDate := tempDate.Add(dayDuaration)
-	lunarDate, _ := solarlunar.SolarToLuanr(nextDate.Format(dateLayout))
-	nexLunarDay, err := time.Parse(dateLayout, lunarDate)
+	lunarDate, _ := solarlunar.SolarToLuanr(nextDate.Format(DATELAYOUT))
+	nexLunarDay, err := time.Parse(DATELAYOUT, lunarDate)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
