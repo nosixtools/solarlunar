@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-var RULE_PATTERN = "^(solar|lunar)\\((?:m(\\d+)):(ld|(?:d|(?:fw|lw|w(\\d+))n)(\\d+))\\)=\\S+$"
-var PATTERN = "^(solar|lunar)\\((?:m(\\d+)):(ld|(?:d|(?:fw|lw|w(\\d+))n)(\\d+))\\)$"
+var RULE_PATTERN = "^(solar|lunar)\\((?:m(\\d+)):(ld|(?:d|(?:fw|lw|w(\\d+))n|(?:s\\d+))(\\d+))\\)=\\S+$"
+var PATTERN = "^(solar|lunar)\\((?:m(\\d+)):(ld|(?:d|(?:fw|lw|w(\\d+))n|(?:s\\d+))(\\d+))\\)$"
 var MONTH_SOLAR_FESTIVAL = map[string][]string{}
 var MONTH_LUNAR_FESTIVAL = map[string][]string{}
 var SOLAR = "solar"
@@ -114,6 +114,7 @@ func readFestivalRuleFromFile(filename string) {
 
 func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, solarDay string) []string {
 	festivals := []string{}
+	year := int(date.Year())
 	month := strconv.Itoa(int(date.Month()))
 	day := strconv.Itoa(date.Day())
 	rules := ruleMap[month]
@@ -122,11 +123,18 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 		reg, _ := regexp.Compile(PATTERN)
 		subMatch := reg.FindStringSubmatch(items[0])
 		festivalMonth := subMatch[2]
-		if strings.HasPrefix(subMatch[3], "d") {
+		if strings.HasPrefix(subMatch[3], "s456") { //特殊处理清明节
+			festivalDay:= getQingMingFestival(year)
+			if month == festivalMonth && day == festivalDay {
+				festivals = append(festivals, items[1])
+			}
+			continue
+		} else if strings.HasPrefix(subMatch[3], "d") {
 			festivalDay := subMatch[5]
 			if month == festivalMonth && day == festivalDay {
 				festivals = append(festivals, items[1])
 			}
+			continue
 		} else if strings.HasPrefix(subMatch[3], "w") {
 			festivalWeek := subMatch[3][1:2]
 			festivalDayOfWeek := subMatch[3][3:4]
@@ -135,11 +143,13 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 			if festivalWeek == week && festivalDayOfWeek == dayOfWeek {
 				festivals = append(festivals, items[1])
 			}
+			continue
 		} else if strings.HasPrefix(subMatch[3], "lw") {
 			festivalDayOfWeek, _ := strconv.Atoi(subMatch[3][3:4])
 			if isDayOfLastWeeekInTheMonth(date, festivalDayOfWeek) {
 				festivals = append(festivals, items[1])
 			}
+			continue
 		} else if strings.HasPrefix(subMatch[3], "ld") && isLunar { //特殊处理除夕节日
 			if month == "12" && day == "29" {
 				nextLunarDay := lunarDateAddOneDay(solarDay)
@@ -150,9 +160,22 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 			} else if month == "12" && day == "30" {
 				festivals = append(festivals, items[1])
 			}
+			continue
 		}
 	}
 	return festivals
+}
+// 清明节算法 公式：int((yy*d+c)-(yy/4.0)) 公式解读：y=年数后2位，d=0.2422，1=闰年数，21世纪c=4081，20世纪c=5.59
+func getQingMingFestival(year int) string {
+	var val float64
+	if year >= 2000 { //21世纪
+		val = 4.81
+	} else { 		  //20世纪
+		val = 5.59
+	}
+	d := float64(year % 100)
+	day := int(d * 0.2422 + val - float64(int(d)/4))
+	return strconv.Itoa(day)
 }
 
 func lunarDateAddOneDay(solarDay string) time.Time {
