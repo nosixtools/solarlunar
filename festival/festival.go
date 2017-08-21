@@ -123,12 +123,23 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 		reg, _ := regexp.Compile(PATTERN)
 		subMatch := reg.FindStringSubmatch(items[0])
 		festivalMonth := subMatch[2]
-		if strings.HasPrefix(subMatch[3], "s456") { //特殊处理清明节
+		if strings.HasPrefix(subMatch[3], "s456") &&  !isLunar { //特殊处理清明节
 			festivalDay:= getQingMingFestival(year)
 			if month == festivalMonth && day == festivalDay {
 				festivals = append(festivals, items[1])
 			}
 			continue
+		} else if strings.HasPrefix(subMatch[3], "s345") && !isLunar { //特殊处理寒食节，为清明节前一天
+			festivalDay := getQingMingFestival(year)
+			intValue, err := strconv.Atoi(festivalDay)
+			if err != nil {
+				fmt.Print(err.Error())
+				continue
+			}
+			festivalDay = strconv.Itoa(intValue - 1)
+			if month == festivalMonth && day == festivalDay {
+				festivals = append(festivals, items[1])
+			}
 		} else if strings.HasPrefix(subMatch[3], "d") {
 			festivalDay := subMatch[5]
 			if month == festivalMonth && day == festivalDay {
