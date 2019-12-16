@@ -123,8 +123,8 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 		reg, _ := regexp.Compile(PATTERN)
 		subMatch := reg.FindStringSubmatch(items[0])
 		festivalMonth := subMatch[2]
-		if strings.HasPrefix(subMatch[3], "s456") &&  !isLunar { //特殊处理清明节
-			festivalDay:= getQingMingFestival(year)
+		if strings.HasPrefix(subMatch[3], "s456") && !isLunar { //特殊处理清明节
+			festivalDay := getQingMingFestival(year)
 			if month == festivalMonth && day == festivalDay {
 				festivals = append(festivals, items[1])
 			}
@@ -147,10 +147,17 @@ func processRule(date time.Time, ruleMap map[string][]string, isLunar bool, sola
 			}
 			continue
 		} else if strings.HasPrefix(subMatch[3], "w") {
-			festivalWeek := subMatch[3][1:2]
-			festivalDayOfWeek := subMatch[3][3:4]
-			week := strconv.Itoa(weekOfMonth(date))
-			dayOfWeek := strconv.Itoa((int(date.Weekday()) + 1) % 7)
+			festivalWeek, _ := strconv.Atoi(subMatch[3][1:2])
+			festivalDayOfWeek, _ := strconv.Atoi(subMatch[3][3:4])
+			week := 0
+			tempDayOfWeek := getDayOfWeekOnFirstDayOfMonth(date)
+			//特殊处理感恩节，感恩节（m11:w4n5）的计算，不是第4周周4，而是第4个周四，如果第一个周没有周四，就不算第一周
+			if (compareWeek(tempDayOfWeek, festivalDayOfWeek) && strings.HasPrefix(subMatch[3], "w4n5")) {
+				week = weekOfMonth(date) - 1
+			} else {
+				week = weekOfMonth(date)
+			}
+			dayOfWeek := (int(date.Weekday()) + 1) % 7
 			if festivalWeek == week && festivalDayOfWeek == dayOfWeek {
 				festivals = append(festivals, items[1])
 			}
@@ -181,11 +188,11 @@ func getQingMingFestival(year int) string {
 	var val float64
 	if year >= 2000 { //21世纪
 		val = 4.81
-	} else { 		  //20世纪
+	} else { //20世纪
 		val = 5.59
 	}
 	d := float64(year % 100)
-	day := int(d * 0.2422 + val - float64(int(d)/4))
+	day := int(d*0.2422 + val - float64(int(d)/4))
 	return strconv.Itoa(day)
 }
 
@@ -211,7 +218,7 @@ func weekOfMonth(now time.Time) int {
 	return 1 + thisWeek - beginningWeek
 }
 
-func isLeapYear(year int) bool  {
+func isLeapYear(year int) bool {
 	if year%4 == 0 && year%100 != 0 || year%400 == 0 {
 		return true
 	}
@@ -249,4 +256,45 @@ func isDayOfLastWeeekInTheMonth(now time.Time, weekNumber int) bool {
 		}
 	}
 	return false
+}
+
+
+func compareWeek(first int, second int) bool {
+	if first-1 == 0 {
+		first = 7;
+	} else {
+		first = first - 1
+	}
+	if second-1 == 0 {
+		first = 7;
+	} else {
+		second = first - 1
+	}
+
+	if (first >= second) {
+		return true
+	} else {
+		return false
+	}
+}
+
+// 星期日：1 星期一：2 类推
+func getDayOfWeekOnFirstDayOfMonth(date time.Time) int {
+	date = getFirstDateOfMonth(date)
+	dayOfWeek := (int(date.Weekday()) + 1) % 7
+	return dayOfWeek
+}
+
+func getFirstDateOfMonth(d time.Time) time.Time {
+	tempDate := time.Date(d.Year(), d.Month(), d.Day(), d.Hour(), d.Minute(), d.Second(), d.Nanosecond(), d.Location())
+	d = tempDate.AddDate(0, 0, -d.Day()+1)
+	return getZeroTime(d)
+}
+
+func getLastDateOfMonth(d time.Time) time.Time {
+	return getFirstDateOfMonth(d).AddDate(0, 1, -1)
+}
+
+func getZeroTime(d time.Time) time.Time {
+	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
 }
