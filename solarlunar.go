@@ -102,8 +102,7 @@ func LunarToSolar(date string, leapMonthFlag bool) string {
 		fmt.Println(err.Error())
 	}
 
-	dayDuaration, _ := time.ParseDuration("24h")
-	myDate = myDate.Add(dayDuaration * time.Duration(offset))
+	myDate = myDate.AddDate(0,0, offset)
 	return myDate.Format(DATELAYOUT)
 }
 
