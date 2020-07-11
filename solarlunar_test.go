@@ -16,6 +16,6 @@ func TestSolarToSimpleLunar(t *testing.T) {
 }
 
 func TestLunarToSolar(t *testing.T) {
-	lunarDate := "1990-04-12"
+	lunarDate := "2020-02-30"
 	fmt.Println(LunarToSolar(lunarDate, false))
 }
