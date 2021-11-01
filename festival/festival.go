@@ -268,7 +268,7 @@ func compareWeek(first int, second int) bool {
 	if second-1 == 0 {
 		first = 7;
 	} else {
-		second = first - 1
+		second = second - 1
 	}
 
 	if (first >= second) {
